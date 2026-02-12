@@ -329,6 +329,16 @@ st.markdown(
 <style>
 [data-testid="stSidebar"] {display: none;}
 [data-testid="stSidebarNav"] {display: none;}
+.bq-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #c8c8c8;
+  border-top-color: #ff6a00;
+  border-radius: 50%;
+  animation: bq-spin 0.8s linear infinite;
+  margin-top: 8px;
+}
+@keyframes bq-spin { to { transform: rotate(360deg); } }
 </style>
 """,
     unsafe_allow_html=True,
