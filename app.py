@@ -418,7 +418,7 @@ with col1:
         start_date, end_date = None, None
 
     id_type = st.selectbox(
-        "ID種別（どれか1つ）",
+        "ID種別",
         ["OrderId", "LineItemId", "CreativeId"],
         index=0
     )
@@ -494,6 +494,7 @@ with colA:
     btn_col, spin_col = st.columns([1, 0.3])
     with btn_col:
         generate_btn = st.button("SQL生成/続行", type="primary")
+        answer_btn = st.button("AIの質問に回答")
         reset_btn = st.button("新規クエリ開始")
     with spin_col:
         spinner_placeholder = st.empty()
@@ -512,7 +513,10 @@ if reset_btn:
     st.session_state.last_request_signature = ""
     st.rerun()
 
-if generate_btn:
+if answer_btn and not st.session_state.pending_question:
+    st.warning("現在、回答待ちの質問はありません。")
+
+if generate_btn or (answer_btn and st.session_state.pending_question):
     st.session_state.is_generating = True
     spinner_placeholder.markdown('<div class="bq-spinner"></div>', unsafe_allow_html=True)
     current_signature = build_request_signature(
@@ -606,7 +610,7 @@ if generate_btn:
 
 
 if st.session_state.final_sql:
-    st.subheader("出力SQL（入力値で埋め込み）")
+    st.subheader("出力SQL")
     rendered_sql = ""
     try:
         ids_for_render = parse_ids(ids_raw)
