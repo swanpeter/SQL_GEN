@@ -9,6 +9,9 @@ import google.generativeai as genai
 
 from basic_setting import BasicSetting
 
+# Spinner placeholder (set after UI is built)
+SPINNER_REF = None
+
 # =========================
 # Config
 # =========================
@@ -179,6 +182,11 @@ def format_gemini_error(err: Exception, model_name: str) -> str:
 
 def stop_with_error(message: str) -> None:
     st.session_state.is_generating = False
+    try:
+        if SPINNER_REF is not None:
+            SPINNER_REF.empty()
+    except Exception:
+        pass
     st.error(message)
     st.stop()
 
@@ -715,6 +723,7 @@ with colA:
         generate_btn = st.button("SQL生成/続行", type="primary")
     with spin_col:
         spinner_placeholder = st.empty()
+        SPINNER_REF = spinner_placeholder
         if st.session_state.is_generating:
             spinner_placeholder.markdown('<div class="bq-spinner"></div>', unsafe_allow_html=True)
         else:
@@ -786,12 +795,17 @@ if generate_btn or (answer_btn and st.session_state.pending_question):
         out = gemini_call(model, system_context, st.session_state.chat_messages)
     except Exception as e:
         stop_with_error(format_gemini_error(e, model_name))
+    st.session_state.is_generating = False
+    if SPINNER_REF is not None:
+        SPINNER_REF.empty()
 
     if out.get("type") == "question":
         q = out.get("question", "").strip()
         st.session_state.chat_messages.append({"role": "assistant", "content": q})
         st.session_state.pending_question = q
         st.session_state.is_generating = False
+        if SPINNER_REF is not None:
+            SPINNER_REF.empty()
         st.rerun()
 
     if out.get("type") == "sql":
@@ -808,6 +822,8 @@ if generate_btn or (answer_btn and st.session_state.pending_question):
                 {"role": "user", "content": f"修正して。理由: {reason}。安全要件を満たすSELECTクエリにして、JSON(type=sql)で返して。"}
             )
             st.session_state.is_generating = False
+            if SPINNER_REF is not None:
+                SPINNER_REF.empty()
             st.rerun()
 
         st.session_state.final_sql = sql
@@ -828,6 +844,8 @@ if generate_btn or (answer_btn and st.session_state.pending_question):
         basic.persist_history_to_storage()
         st.session_state.chat_messages.append({"role": "assistant", "content": "SQLが確定しました。下に出力します。"})
         st.session_state.is_generating = False
+        if SPINNER_REF is not None:
+            SPINNER_REF.empty()
         st.rerun()
 
     stop_with_error("不明な応答形式です（typeがquestion/sqlではない）。JSON形式での返答を強制してください。")
