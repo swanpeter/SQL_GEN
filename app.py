@@ -177,6 +177,12 @@ def format_gemini_error(err: Exception, model_name: str) -> str:
     return f"Gemini呼び出しに失敗: {msg}"
 
 
+def stop_with_error(message: str) -> None:
+    st.session_state.is_generating = False
+    st.error(message)
+    st.stop()
+
+
 def render_sql_with_params(sql: str, start_date, end_date, ids: List[int]) -> str:
     out = sql
     if start_date:
@@ -422,11 +428,13 @@ if "final_notes" not in st.session_state:
 if "pending_question" not in st.session_state:
     st.session_state.pending_question = ""
 
+if "is_generating" not in st.session_state:
+    st.session_state.is_generating = False
+
 
 def init_model():
     if not api_key:
-        st.error("CX_GEMINI_API_KEY が未設定です（環境変数で設定してください）。")
-        st.stop()
+        stop_with_error("CX_GEMINI_API_KEY が未設定です（環境変数で設定してください）。")
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(model_name)
 
@@ -463,32 +471,36 @@ for m in st.session_state.chat_messages:
 colA, colB = st.columns([1, 2])
 
 with colA:
-    generate_btn = st.button("SQL生成/続行", type="primary")
+    btn_col, spin_col = st.columns([1, 0.3])
+    with btn_col:
+        generate_btn = st.button("SQL生成/続行", type="primary")
+    with spin_col:
+        spinner_placeholder = st.empty()
+        if st.session_state.is_generating:
+            spinner_placeholder.markdown('<div class="bq-spinner"></div>', unsafe_allow_html=True)
 
 with colB:
     user_answer = st.text_input("（AIの質問に回答）", value="")
 
 if generate_btn:
+    st.session_state.is_generating = True
+    spinner_placeholder.markdown('<div class="bq-spinner"></div>', unsafe_allow_html=True)
     # Validate base inputs
     if not (start_date and end_date):
-        st.error("日付範囲を2つ指定してください。")
-        st.stop()
+        stop_with_error("日付範囲を2つ指定してください。")
     if not nl_request.strip():
-        st.error("自然言語の要望を入力してください。")
-        st.stop()
+        stop_with_error("自然言語の要望を入力してください。")
     try:
         ids = parse_ids(ids_raw)
     except Exception as e:
-        st.error(str(e))
-        st.stop()
+        stop_with_error(str(e))
 
     model = init_model()
 
     # If we have a pending question, add the user's answer
     if st.session_state.pending_question:
         if not user_answer.strip():
-            st.error("質問への回答を入力してください（または質問が不要なら最初からやり直し）。")
-            st.stop()
+            stop_with_error("質問への回答を入力してください（または質問が不要なら最初からやり直し）。")
         st.session_state.chat_messages.append({"role": "user", "content": f"質問への回答: {user_answer.strip()}"})
         st.session_state.pending_question = ""
 
@@ -506,13 +518,13 @@ if generate_btn:
     try:
         out = gemini_call(model, system_context, st.session_state.chat_messages)
     except Exception as e:
-        st.error(format_gemini_error(e, model_name))
-        st.stop()
+        stop_with_error(format_gemini_error(e, model_name))
 
     if out.get("type") == "question":
         q = out.get("question", "").strip()
         st.session_state.chat_messages.append({"role": "assistant", "content": q})
         st.session_state.pending_question = q
+        st.session_state.is_generating = False
         st.rerun()
 
     if out.get("type") == "sql":
@@ -528,6 +540,7 @@ if generate_btn:
             st.session_state.chat_messages.append(
                 {"role": "user", "content": f"修正して。理由: {reason}。安全要件を満たすSELECTクエリにして、JSON(type=sql)で返して。"}
             )
+            st.session_state.is_generating = False
             st.rerun()
 
         st.session_state.final_sql = sql
@@ -547,10 +560,10 @@ if generate_btn:
         )
         basic.persist_history_to_storage()
         st.session_state.chat_messages.append({"role": "assistant", "content": "SQLが確定しました。下に出力します。"})
+        st.session_state.is_generating = False
         st.rerun()
 
-    st.error("不明な応答形式です（typeがquestion/sqlではない）。JSON形式での返答を強制してください。")
-    st.stop()
+    stop_with_error("不明な応答形式です（typeがquestion/sqlではない）。JSON形式での返答を強制してください。")
 
 
 if st.session_state.final_sql:
