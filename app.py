@@ -204,6 +204,221 @@ def extract_code_notes(sql: str, codebook: Dict[str, List[Tuple[str, str]]]) -> 
     return notes
 
 
+def _strip_sql_comments(sql: str) -> str:
+    out = []
+    i = 0
+    in_single = False
+    in_double = False
+    in_backtick = False
+    while i < len(sql):
+        ch = sql[i]
+        nxt = sql[i + 1] if i + 1 < len(sql) else ""
+        if in_single:
+            out.append(ch)
+            if ch == "'" and (i == 0 or sql[i - 1] != "\\"):
+                in_single = False
+            i += 1
+            continue
+        if in_double:
+            out.append(ch)
+            if ch == '"' and (i == 0 or sql[i - 1] != "\\"):
+                in_double = False
+            i += 1
+            continue
+        if in_backtick:
+            out.append(ch)
+            if ch == "`":
+                in_backtick = False
+            i += 1
+            continue
+        if ch == "'" and not in_double and not in_backtick:
+            in_single = True
+            out.append(ch)
+            i += 1
+            continue
+        if ch == '"' and not in_single and not in_backtick:
+            in_double = True
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "`" and not in_single and not in_double:
+            in_backtick = True
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "-" and nxt == "-":
+            # line comment
+            i += 2
+            while i < len(sql) and sql[i] not in "\r\n":
+                i += 1
+            continue
+        if ch == "/" and nxt == "*":
+            # block comment
+            i += 2
+            while i + 1 < len(sql) and not (sql[i] == "*" and sql[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def _is_word_boundary(text: str, idx: int, length: int) -> bool:
+    before = text[idx - 1] if idx > 0 else ""
+    after = text[idx + length] if idx + length < len(text) else ""
+    return (not before or not (before.isalnum() or before == "_")) and (
+        not after or not (after.isalnum() or after == "_")
+    )
+
+
+def extract_predicted_columns(sql: str) -> List[str]:
+    if not sql:
+        return []
+    text = _strip_sql_comments(sql)
+    depth = 0
+    in_single = False
+    in_double = False
+    in_backtick = False
+    start = None
+    end = None
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if in_single:
+            if ch == "'" and text[i - 1] != "\\":
+                in_single = False
+            i += 1
+            continue
+        if in_double:
+            if ch == '"' and text[i - 1] != "\\":
+                in_double = False
+            i += 1
+            continue
+        if in_backtick:
+            if ch == "`":
+                in_backtick = False
+            i += 1
+            continue
+        if ch == "'":
+            in_single = True
+            i += 1
+            continue
+        if ch == '"':
+            in_double = True
+            i += 1
+            continue
+        if ch == "`":
+            in_backtick = True
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+            i += 1
+            continue
+        if ch == ")":
+            depth = max(0, depth - 1)
+            i += 1
+            continue
+        if depth == 0:
+            if text[i : i + 6].upper() == "SELECT" and _is_word_boundary(text, i, 6):
+                start = i + 6
+                i += 6
+                continue
+            if start is not None and text[i : i + 4].upper() == "FROM" and _is_word_boundary(text, i, 4):
+                end = i
+                break
+        i += 1
+    if start is None or end is None or end <= start:
+        return []
+    select_clause = text[start:end]
+    parts = []
+    current = []
+    depth = 0
+    in_single = False
+    in_double = False
+    in_backtick = False
+    for ch in select_clause:
+        if in_single:
+            current.append(ch)
+            if ch == "'" and current and len(current) >= 2 and current[-2] != "\\":
+                in_single = False
+            continue
+        if in_double:
+            current.append(ch)
+            if ch == '"' and current and len(current) >= 2 and current[-2] != "\\":
+                in_double = False
+            continue
+        if in_backtick:
+            current.append(ch)
+            if ch == "`":
+                in_backtick = False
+            continue
+        if ch == "'":
+            in_single = True
+            current.append(ch)
+            continue
+        if ch == '"':
+            in_double = True
+            current.append(ch)
+            continue
+        if ch == "`":
+            in_backtick = True
+            current.append(ch)
+            continue
+        if ch == "(":
+            depth += 1
+            current.append(ch)
+            continue
+        if ch == ")":
+            depth = max(0, depth - 1)
+            current.append(ch)
+            continue
+        if ch == "," and depth == 0:
+            part = "".join(current).strip()
+            if part:
+                parts.append(part)
+            current = []
+            continue
+        current.append(ch)
+    last = "".join(current).strip()
+    if last:
+        parts.append(last)
+
+    columns = []
+    for expr in parts:
+        expr = expr.strip()
+        if not expr:
+            continue
+        if expr == "*":
+            columns.append("*")
+            continue
+        if expr.endswith(".*"):
+            columns.append(expr)
+            continue
+        m = re.search(r"\s+AS\s+(`[^`]+`|\"[^\"]+\"|[A-Za-z_][\w]*)\s*$", expr, re.IGNORECASE)
+        if m:
+            alias = m.group(1).strip("`\"")
+            columns.append(alias)
+            continue
+        # try trailing alias without AS
+        tokens = re.split(r"\s+", expr)
+        if len(tokens) >= 2:
+            last_tok = tokens[-1]
+            if re.fullmatch(r"`[^`]+`|[A-Za-z_][\w]*", last_tok):
+                columns.append(last_tok.strip("`"))
+                continue
+        # simple identifier or dotted
+        if re.fullmatch(r"[A-Za-z_][\w]*", expr):
+            columns.append(expr)
+            continue
+        if re.fullmatch(r"[A-Za-z_][\w]*\.[A-Za-z_][\w]*", expr):
+            columns.append(expr.split(".")[-1])
+            continue
+        columns.append(expr)
+    return columns
+
+
 def add_history_entry(
     history: List[Dict[str, object]],
     *,
@@ -372,7 +587,11 @@ basic.sync_cookie_controller()
 basic.require_login()
 basic.init_history()
 
-st.title("BigQuery SQL Generator")
+header_left, header_right = st.columns([0.8, 0.2])
+with header_left:
+    st.title("BigQuery SQL Generator")
+with header_right:
+    reset_btn = st.button("新規クエリ開始")
 
 api_key = GEMINI_API_KEY
 model_name = DEFAULT_MODEL
@@ -494,7 +713,6 @@ with colA:
     btn_col, spin_col = st.columns([1, 0.3])
     with btn_col:
         generate_btn = st.button("SQL生成/続行", type="primary")
-        reset_btn = st.button("新規クエリ開始")
     with spin_col:
         spinner_placeholder = st.empty()
         if st.session_state.is_generating:
@@ -517,6 +735,10 @@ if reset_btn:
 
 if answer_btn and not st.session_state.pending_question:
     st.warning("現在、回答待ちの質問はありません。")
+
+# Reset spinner when not actively generating this run
+if not generate_btn and not (answer_btn and st.session_state.pending_question):
+    st.session_state.is_generating = False
 
 if generate_btn or (answer_btn and st.session_state.pending_question):
     st.session_state.is_generating = True
@@ -632,6 +854,13 @@ if st.session_state.final_sql:
         if code_notes:
             st.subheader("コード値（自動補足）")
             st.markdown("\n".join([f"- {n}" for n in code_notes]))
+
+        predicted_cols = extract_predicted_columns(rendered_sql)
+        if predicted_cols:
+            st.subheader("予測テーブル（列のみ）")
+            st.dataframe(pd.DataFrame(columns=predicted_cols), use_container_width=True)
+        else:
+            st.info("予測テーブルは解析できませんでした（SELECT句の解析に失敗）。")
 
     if st.session_state.final_notes:
         st.subheader("補足")
