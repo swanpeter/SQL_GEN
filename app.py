@@ -494,7 +494,6 @@ with colA:
     btn_col, spin_col = st.columns([1, 0.3])
     with btn_col:
         generate_btn = st.button("SQL生成/続行", type="primary")
-        answer_btn = st.button("AIの質問に回答")
         reset_btn = st.button("新規クエリ開始")
     with spin_col:
         spinner_placeholder = st.empty()
@@ -503,6 +502,7 @@ with colA:
 
 with colB:
     user_answer = st.text_input("（AIの質問に回答）", value="")
+    answer_btn = st.button("AIの質問に回答")
 
 if reset_btn:
     st.session_state.chat_messages = []
