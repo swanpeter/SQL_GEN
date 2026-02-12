@@ -344,9 +344,6 @@ st.title("BigQuery SQL Generator")
 api_key = GEMINI_API_KEY
 model_name = DEFAULT_MODEL
 
-if st.button("ログアウト"):
-    basic.logout()
-
 # Load schema from CSVs (local or /mnt/data)
 def resolve_schema_path(filename: str) -> str:
     candidates = []
