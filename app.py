@@ -401,7 +401,6 @@ with col2:
         height=180,
         placeholder="例: 日別のimpとUBとfrequencyを出したい。device_codeでも分けたい。完再生率もほしい。"
     )
-    st.subheader("Geminiとのラリー")
     st.caption("不明点があればAIが質問します。回答して続けてください。")
 
 if "chat_messages" not in st.session_state:
