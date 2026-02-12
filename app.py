@@ -309,7 +309,7 @@ def gemini_call(model, system_context: str, messages: List[Dict[str, str]]) -> D
         return parsed2
 
     raise ValueError(
-        "Geminiの返答が空、またはJSONとして解釈できませんでした。"
+        "AIの返答が空、またはJSONとして解釈できませんでした。"
         "モデルを変更するか、少し待って再試行してください。"
     )
 
@@ -318,7 +318,7 @@ def gemini_call(model, system_context: str, messages: List[Dict[str, str]]) -> D
 # UI
 # =========================
 st.set_page_config(
-    page_title="BQ SQL Generator (Gemini)",
+    page_title="BQ SQL Generator",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -339,7 +339,7 @@ basic.sync_cookie_controller()
 basic.require_login()
 basic.init_history()
 
-st.title("BigQuery SQL Generator (Streamlit × Gemini)")
+st.title("BigQuery SQL Generator")
 
 api_key = GEMINI_API_KEY
 model_name = DEFAULT_MODEL
@@ -402,7 +402,7 @@ with col2:
         placeholder="例: 日別のimpとUBとfrequencyを出したい。device_codeでも分けたい。完再生率もほしい。"
     )
     st.subheader("Geminiとのラリー")
-    st.caption("不明点があればGeminiが質問します。回答して続けてください。")
+    st.caption("不明点があればAIが質問します。回答して続けてください。")
 
 if "chat_messages" not in st.session_state:
     st.session_state.chat_messages = []  # [{"role":"user"/"assistant","content": "..."}]
@@ -460,7 +460,7 @@ with colA:
     generate_btn = st.button("SQL生成/続行", type="primary")
 
 with colB:
-    user_answer = st.text_input("（Geminiの質問に回答）", value="")
+    user_answer = st.text_input("（AIの質問に回答）", value="")
 
 if generate_btn:
     # Validate base inputs
