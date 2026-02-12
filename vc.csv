@@ -1,0 +1,46 @@
+﻿field name,mode,type,description
+TimeDate,NULLABLE,DATE,イベントの日付：ネットワークのローカルタイムゾーンでのイベントの日付
+KeyPart,NULLABLE,STRING,一意のクエリ識別子：一意のクエリ識別子（ハッシュ化されたキー）。TimeUsec2と組み合わせて、クエリまたは入札オークションを一意に識別できる。
+TimeUsec2,NULLABLE,INTEGER,クエリの Unix時間：1970年 1月1日午前 0時 0分 0秒（協定世界時）からのマイクロ秒数で表した、クエリの Unix時間。KeyPartと合わせて一意
+Time,NULLABLE,DATETIME,イベントの時間：ネットワークのローカルタイムゾーンでのイベントの時間。24 時間形式（YYYY-MM-DD-HH:MI:SS）で表示
+EventKeyPart,NULLABLE,STRING,一意のイベント識別子：一意のイベント識別子（ハッシュ化されたキー）。1回のクエリのインプレッションや他のイベントごとに固有の値が設定される。
+EventTimeUsec2,NULLABLE,INTEGER,イベントの Unix時間：1970年1月1日午前0時0分0秒（協定世界時）からのマイクロ秒数で表した、インプレッションまたは他のイベントの Unix時間。
+AdvertiserId,NULLABLE,INTEGER,DFP 広告主 ID：配信されたクリエイティブに関連付けられているアド マネージャーの広告主会社の数値ID。
+OrderId,NULLABLE,INTEGER,オーダー ID：配信された広告申込情報とクリエイティブを含むアド マネージャー オーダーの数値 ID。’p_MatchTableOrder_22678268584’テーブル紐付け
+LineItemId,NULLABLE,INTEGER,DFP 広告申込情報 ID：配信されたアド マネージャー広告申込情報の数値 ID。’p_MatchTableLineItem_22678268584’テーブル紐付け。
+CreativeId,NULLABLE,INTEGER,クリエイティブID：配信されたアドマネージャークリエイティブの数値ID。ADCASマスタテーブル紐付け。
+GfpContentId,NULLABLE,INTEGER,一意の動画コンテンツ ID：広告が配信された動画コンテンツ。001_gam_api.content_masterのcontent_idと紐づけ
+SambaId,NULLABLE,STRING,001_gam_api.content_masterのsamba_idと紐づけて取得
+VideoPosition,NULLABLE,INTEGER,動画の位置：1~17 0 = 不明な位置 1 = プレロール 2 = 任意のミッドロール （サポート終了） 3 = ポストロール 4 = 最初のミッドロール 5 = 2 番目のミッドロール、以降同様
+PodPosition,NULLABLE,INTEGER,動画連続配信広告の掲載位置：広告の位置を示す。例えば、2つ目の位置の広告は「2」で表示する。位置が不明なら、値は0になる。予約広告がなく、プログラマティック広告も配信されない場合、値は-1になる
+VideoFallbackPosition,NULLABLE,INTEGER,代替位置：0～9。動画広告の代替の位置。 0 = 代替なし 1 = 最初の代替広告、2 = 2 番目の代替広告、3 = 3 番目の代替広告など。
+ActionCode,NULLABLE,INTEGER,"アクションコード：2:Start,4:Midpoint,6:Complete,7:Mute,12:Full screen。100_gam_data.p_NetworkVideoConversions_22678268584のActionName列に基づいて生成。"
+ActionCount,NULLABLE,INTEGER,アクション数：特定のクリエイティブのコンバージョンが発生した回数。
+permission,NULLABLE,INTEGER,"承諾：null/0:なし(オプトアウト),1:あり(オプトイン)。adidがnullならnull:未取得。それ以外はadidが""optout""かどうかで判断。"
+pf,NULLABLE,INTEGER,"プラットフォーム：1:Tver,2:FOD,0:その他　　"
+delivery_type,NULLABLE,INTEGER,"配信タイプ：1:vod,2:simul,3:dvr,4:splive,5:spdvr,0:その他"
+deal_type,NULLABLE,INTEGER,"取引タイプ：1:予約型,2:運用型,3:自社広告4:検証"
+ssp,NULLABLE,INTEGER,"SSP：PMPのときのみ。null/1:AJA,9:Xandr,10:PubMatic,11:UltraImpression,12:FreakOut,13:Magnite,14:SpringServe,15:fluct,16:OpenX,17:VOXX,18:YieldOne,20:AM360（CCI）,21:AM360（CX）,22:Publica※2024年3月以前…1:AJA,2:Tver,3:Dentsu(SpotX),4:Dentsu(MCM),5:HDY(YOne),6:HDY(MCM),7:Google PD,8:Google PG,9:Xandr,10:PubMatic"
+country,NULLABLE,STRING,国：ユーザーの IP アドレスに関連付けられている国の名前
+area_ip,NULLABLE,INTEGER,"エリアコード：100_gam_data.p_NetworkClicks_22678268584テーブルのRegionカラムから生成。null/-1:optout/1:北海道,2:東北,3:北関東,4:南関東,5:甲信越,6:東海,7:北陸,8:近畿,9:中国,10:四国,11:九州,12:沖縄,0:その他。※左記定義以外はnullに変換"
+region_ip,NULLABLE,INTEGER,"都道府県コード：100_gam_data.p_NetworkClicks_22678268584テーブルのRegionカラムの値に基づいて生成。1:北海道,2:青森,3:岩手,4:宮城,5:秋田,6:山形,7:福島,8:茨城,9:栃木,10:群馬,11:埼玉,12:千葉,13:東京,14:神奈川,15:新潟,16:富山,17:石川,18:福井,19:山梨,20:長野,21:岐阜,22:静岡,23:愛知,24:三重,25:滋賀,26:京都,27:大阪,28:兵庫,29:奈良,30:和歌山,31:鳥取,32:島根,33:岡山,34:広島,35:山口,36:徳島,37:香川,38:愛媛,39:高知,40:福岡,41:佐賀,42:長崎,43:熊本,44:大分,45:宮崎,46:鹿児島,47:沖縄,0:その他 ※左記定義以外はnullに変換"
+adid,NULLABLE,STRING,ADID：null/optout/000145ad-2ad5-4aa2-950c-5680f9d645c2等
+suid,NULLABLE,STRING,SUID：null/optout/00000680-af1e-4a99-9a6d-0eef18691fb7等
+memberid,NULLABLE,STRING,TVerID：null/3c8a6070-c421-460f-b6ba-21c6db7e7748等
+device_code,NULLABLE,INTEGER,"デバイスコード：null/1:PCブラウザ,2:iOSアプリ,3:Androidアプリ,5:iOSブラウザ,6:Androidブラウザ,9:AndroidTVアプリ,10:FireTVアプリ,11:AppleTVアプリ,12:Chromecast,13:VIERAアプリ,14:REGZA,21:その他TVアプリ全般,0:その他"
+device_type,NULLABLE,INTEGER,"デバイス：null/1:PC,2:SD,3:TV,0:その他"
+tver_genre,NULLABLE,INTEGER,"ジャンル：null/1:ドラマ,2:バラエティ,3:アニメ,4:スポーツ,5:報道・ドキュメンタリー,6:その他"
+answer,NULLABLE,INTEGER,"アンケート回答有無：1:有,0:無。pcode or ageがNullなら0:無。"
+layer,NULLABLE,INTEGER,"属性情報：1:MF-14,2:MF15-19,3:F20-34,4:F35-49,5:F50-64,6:M20-34,7:M35-49,8:M50-64,9:MF65-,0:その他,-1:未取得"
+gender,NULLABLE,INTEGER,"性別：null/-1:optout/1:男,2:女,9:その他,0:回答しない。※左記定義以外はnullに変換"
+age,NULLABLE,INTEGER,年齢：null/-1:optout/0~100。※左記定義以外はnullに変換
+area_1st,NULLABLE,INTEGER,"エリアコード：100_gam_data.p_NetworkClicks_22678268584テーブルのCustomTargetingカラムから抽出したsu_pcodeに基づいて生成。-1:optout,1:北海道,2:東北,3:北関東,4:南関東,5:甲信越,6:東海,7:北陸,8:近畿,9:中国,10:四国,11:九州,12:沖縄 ※左記定義以外はnullに変換"
+region_1st,NULLABLE,INTEGER,"都道府県コード：100_gam_data.p_NetworkClicks_22678268584テーブルのCustomTargetingカラムから抽出したsu_pcodeに基づいて生成。-1:optout,1:北海道,2:青森,3:岩手,4:宮城,5:秋田,6:山形,7:福島,8:茨城,9:栃木,10:群馬,11:埼玉,12:千葉,13:東京,14:神奈川,15:新潟,16:富山,17:石川,18:福井,19:山梨,20:長野,21:岐阜,22:静岡,23:愛知,24:三重,25:滋賀,26:京都,27:大阪,28:兵庫,29:奈良,30:和歌山,31:鳥取,32:島根,33:岡山,34:広島,35:山口,36:徳島,37:香川,38:愛媛,39:高知,40:福岡,41:佐賀,42:長崎,43:熊本,44:大分,45:宮崎,46:鹿児島,47:沖縄。※左記定義以外はnullに変換"
+interest,REPEATED,INTEGER,"興味関心：100_gam_data.p_NetworkClicks_22678268584テーブルのCustomTargetingカラムから抽出したsu_interestに基づいて生成。null / -1:optout / 1:無回答,2:ビジネス・経済,3:自動車,4:テクノロジー・ガジェット,5:ゲーム,6:ラグジュアリー,7:ショッピング・ファッション,8:ヘルスケア,9:美容,10:教育・子育て,11:旅行,12:映画,13:金融・ファイナンス,14:スポーツ・フィットネス,15:料理・グルメ,16:ペット,17:アート・芸術・音楽,18:環境・SDGs ※optout以外に数字に変換できないものはnullに変換"
+cuename,NULLABLE,INTEGER,"広告枠コード：1(番宣のみ):midbp,2(提供社/番宣のみOKの枠):midcmspecial,3(ローカルCM):midlt,4(ラインナップ):midpr,5(スポットCM):midpt,6(SpecialLive用):midroll,7(ステブレ):midsb,8(RT、DVR):postroll,9(RT、DVR):preroll,1000~1099:midcm000~099,1999:midcm999,0:その他 ※左記定義以外はnullに変換"
+zipcode,NULLABLE,STRING,郵便番号
+ct_program,NULLABLE,STRING,CustomTargeting内番組コード(リアルタイムのみ)
+pmp,NULLABLE,INTEGER,"PMPコード：PMPのときのみ。null/1:AJA,2:TVer,3:電通系PMP（PremiumView等）,4:HDY系PMP（BVAD等）,5:PubMatic,6:SpringServe,7:Publica,0:Other"
+pmp_detail,NULLABLE,INTEGER,"PMP(オーダー分類)コード：PMPのときのみ。null/1:AJAPMP,2:AJAPMP（Cygames用）,3:TVer広告,4:TVerPMP,5:Magnite・CCI系PMP（MagniteStreamingSSP）,6:CCI系PMP（MCM）,7:CCI系PMP（fluctSSP）,8:電通系PMP（AM360 as SSP-PD）,9:HDY系PMP（クリッカブル）,10:HDY系PMP（ノンクリッカブル）,11:HDY系PMP（MCM）,12:HDY系PMP（AM360 as SSP-PD）,13:PubMaticPMP,14:SpringServe,15:他PMP（AM360 as SSP-PD）,16:Open Auction（MarketPrace Package）,17:Xandr,18:OpenX,19:VOXX,20:他PMP（AM360 as SSP-PG）,21:Publica"
+ppid,NULLABLE,STRING,100_gam_data.p_NetworkVideoConversions_22678268584テーブルのCustomTargetingカラムから抽出したppid_dt
+vr_suid,NULLABLE,STRING,iuid廃止対応用ID
