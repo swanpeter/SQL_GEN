@@ -262,6 +262,23 @@ def render_history_panel(history: List[Dict[str, object]]) -> None:
             st.divider()
 
 
+def build_request_signature(
+    nl_request: str,
+    start_date,
+    end_date,
+    id_type: str,
+    ids_raw: str,
+) -> str:
+    payload = {
+        "nl_request": (nl_request or "").strip(),
+        "start_date": str(start_date) if start_date else "",
+        "end_date": str(end_date) if end_date else "",
+        "id_type": id_type or "",
+        "ids_raw": (ids_raw or "").strip(),
+    }
+    return json.dumps(payload, ensure_ascii=True, sort_keys=True)
+
+
 def _try_parse_json(text: str) -> Optional[Dict[str, Any]]:
     t = (text or "").strip()
     if not t:
@@ -431,6 +448,9 @@ if "pending_question" not in st.session_state:
 if "is_generating" not in st.session_state:
     st.session_state.is_generating = False
 
+if "last_request_signature" not in st.session_state:
+    st.session_state.last_request_signature = ""
+
 
 def init_model():
     if not api_key:
@@ -474,6 +494,7 @@ with colA:
     btn_col, spin_col = st.columns([1, 0.3])
     with btn_col:
         generate_btn = st.button("SQL生成/続行", type="primary")
+        reset_btn = st.button("新規クエリ開始")
     with spin_col:
         spinner_placeholder = st.empty()
         if st.session_state.is_generating:
@@ -482,9 +503,27 @@ with colA:
 with colB:
     user_answer = st.text_input("（AIの質問に回答）", value="")
 
+if reset_btn:
+    st.session_state.chat_messages = []
+    st.session_state.final_sql = ""
+    st.session_state.final_notes = ""
+    st.session_state.pending_question = ""
+    st.session_state.is_generating = False
+    st.session_state.last_request_signature = ""
+    st.rerun()
+
 if generate_btn:
     st.session_state.is_generating = True
     spinner_placeholder.markdown('<div class="bq-spinner"></div>', unsafe_allow_html=True)
+    current_signature = build_request_signature(
+        nl_request, start_date, end_date, id_type, ids_raw
+    )
+    if not st.session_state.pending_question and st.session_state.last_request_signature:
+        if current_signature != st.session_state.last_request_signature:
+            st.session_state.chat_messages = []
+            st.session_state.final_sql = ""
+            st.session_state.final_notes = ""
+    st.session_state.last_request_signature = current_signature
     # Validate base inputs
     if not (start_date and end_date):
         stop_with_error("日付範囲を2つ指定してください。")
