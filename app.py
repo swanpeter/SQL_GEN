@@ -884,8 +884,4 @@ if st.session_state.final_sql:
         st.subheader("補足")
         st.write(st.session_state.final_notes)
 
-    st.info(
-        "※このアプリはSQLを“実行しません”。実行する場合も別途、読み取り専用の権限/ジョブ実行制御を推奨します。"
-    )
-
 render_history_panel(st.session_state.get("history", []))
