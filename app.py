@@ -499,6 +499,8 @@ with colA:
         spinner_placeholder = st.empty()
         if st.session_state.is_generating:
             spinner_placeholder.markdown('<div class="bq-spinner"></div>', unsafe_allow_html=True)
+        else:
+            spinner_placeholder.empty()
 
 with colB:
     user_answer = st.text_input("（AIの質問に回答）", value="")
@@ -610,6 +612,7 @@ if generate_btn or (answer_btn and st.session_state.pending_question):
 
 
 if st.session_state.final_sql:
+    st.session_state.is_generating = False
     st.subheader("出力SQL")
     rendered_sql = ""
     try:
